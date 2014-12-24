@@ -35,8 +35,23 @@ func getTitle(url string) (string, error) {
 	return matches[1], nil
 }
 
-func postedJSON(key string, url string) string {
-	return fmt.Sprintf(`{"key":"%s", "longUrl": "%s"}`, key, url)
+func postedJSON(key string, url string) (string, error) {
+	type Request struct {
+		Key     string `json:"key"`
+		LongURL string `json:"longUrl"`
+	}
+
+	req := Request{
+		Key:     key,
+		LongURL: url,
+	}
+
+	bytes, err := json.Marshal(&req)
+	if err != nil {
+		return "", err
+	}
+
+	return string(bytes), nil
 }
 
 const apiURL = "https://www.googleapis.com/urlshortener/v1/url"
@@ -65,7 +80,11 @@ func shortURL(url string) (string, error) {
 		return "", err
 	}
 
-	jsonStr := postedJSON((*profile)["key"], url)
+	jsonStr, err := postedJSON((*profile)["key"], url)
+	if err != nil {
+		return "", err
+	}
+
 	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer([]byte(jsonStr)))
 	if err != nil {
 		return "", err
